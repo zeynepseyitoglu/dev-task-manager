@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Task Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+      (function(){try{var t=localStorage.getItem("taskManagerTheme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");else if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();
+    </script>
+</head>
+<body>
+    <div class="app-layout">
+        <header class="app-header" role="banner">
+            <span class="app-header-title">Task Manager</span>
+            <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">☀</span>
+                <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">☽</span>
+            </button>
+        </header>
+        <div class="app-columns">
+        <aside class="column-left">
+            <div class="column-left-inner">
+                <h1 class="app-title">Developer Task Manager</h1>
+                <p class="app-subtitle">Add and track your tasks locally.</p>
+                <section class="add-task-section" aria-labelledby="add-task-heading">
+                    <h2 id="add-task-heading" class="add-task-heading">Add Task</h2>
+                    <form method="post" action="/" class="add-form">
+                        <input type="text" name="title" placeholder="Task title..." required autofocus>
+                        <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
+                        <div class="form-row">
+                            <label>
+                                <span class="label-text">Type</span>
+                                <select name="task_type">
+                                    {% for tt in task_types %}
+                                    <option value="{{ tt }}">{{ tt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                <span class="label-text">Status</span>
+                                <select name="status">
+                                    {% for s in statuses %}
+                                    <option value="{{ s }}">{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                <span class="label-text">Due date</span>
+                                <input type="date" name="due_date" class="add-form-date">
+                            </label>
+                        </div>
+                        <label class="add-form-code-link-wrap">
+                            <span class="label-text">Code link</span>
+                            <input type="text" name="code_link" class="add-form-code-link" placeholder="File path, module, or GitHub/GitLab URL…">
+                        </label>
+                        <button type="submit">Add Task</button>
+                    </form>
+                </section>
+            </div>
+        </aside>
+
+        <main class="column-main">
+            <div class="column-main-inner">
+                {% if tasks %}
+                {% if timeline_tasks %}
+                <section class="timeline-wrap">
+                    <h2 class="timeline-title">By due date</h2>
+                    <div class="timeline" role="list">
+                        {% for t in timeline_tasks %}
+                        <a href="#" class="timeline-item" data-task-id="{{ t.id }}" title="{{ t.title }} – {{ t.due_date }}">
+                            <span class="timeline-item-title">{{ t.title }}</span>
+                            <span class="timeline-item-date">{{ t.due_date }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+                <div class="board-search-wrap">
+                    <input type="search" id="board-search" class="board-search" placeholder="Search by title or type…" aria-label="Search tasks">
+                </div>
+                <section class="board">
+                    {% for status in statuses %}
+                    <div class="column" data-status="{{ status }}">
+                        <h2 class="column-header">{{ status }}</h2>
+                        <ul class="column-cards">
+                            {% for task in tasks %}
+                            {% if task.status == status %}
+                            {% set due = task.due_date or '' %}
+                            {% set is_overdue = due and due < today_iso %}
+                            {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
+                            <li class="card{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                                <div class="card-body">
+                                    <div class="card-body-header">
+                                        <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
+                                        <span class="task-title">{{ task.title }}</span>
+                                    </div>
+                                    <div class="card-body-detail">
+                                        {% if task.description %}
+                                        <p class="task-description">{{ task.description }}</p>
+                                        {% endif %}
+                                        <div class="task-meta-row">
+                                            <span class="badge badge-type">{{ task.task_type }}</span>
+                                            {% if due %}
+                                            <span class="task-due-date" title="Due {{ due }}">📅 {{ due }}</span>
+                                            {% endif %}
+                                            {% if task.code_link %}
+                                            <a href="#" class="task-code-link" data-code-link="{{ task.code_link|e }}" title="{{ task.code_link }}" aria-label="Open code link">🔗 <span class="task-code-link-text">{{ task.code_link }}</span></a>
+                                            {% endif %}
+                                        </div>
+                                        {% set subtasks = task.subtasks or [] %}
+                                        {% set done_count = subtasks | selectattr('done') | list | length %}
+                                        {% if subtasks %}
+                                        <div class="task-progress" title="{{ done_count }}/{{ subtasks|length }} subtasks done">
+                                            <div class="task-progress-bar" style="width: {{ (100 * done_count / subtasks|length) if subtasks else 0 }}%"></div>
+                                            <span class="task-progress-text">{{ done_count }}/{{ subtasks|length }}</span>
+                                        </div>
+                                        {% endif %}
+                                        <div class="task-subtasks">
+                                            <ul class="subtask-list">
+                                                {% for st in subtasks %}
+                                                <li class="subtask-item {% if st.done %}subtask-done{% endif %}">
+                                                    <form method="post" action="{{ url_for('toggle_subtask', task_id=task.id, subtask_id=st.id) }}" class="subtask-toggle-form">
+                                                        <button type="submit" class="subtask-checkbox" title="{{ 'Mark incomplete' if st.done else 'Mark done' }}" aria-label="{{ 'Mark incomplete' if st.done else 'Mark done' }}">{{ '✓' if st.done else '' }}</button>
+                                                    </form>
+                                                    <span class="subtask-title">{{ st.title }}</span>
+                                                    <form method="post" action="{{ url_for('delete_subtask', task_id=task.id, subtask_id=st.id) }}" class="subtask-delete-form">
+                                                        <button type="submit" class="subtask-delete" title="Remove subtask">×</button>
+                                                    </form>
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                            <form method="post" action="{{ url_for('add_subtask', task_id=task.id) }}" class="subtask-add-form">
+                                                <input type="text" name="title" placeholder="Add subtask…" class="subtask-add-input">
+                                                <button type="submit" class="subtask-add-btn">Add</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-actions">
+                                    <form method="post" action="{{ url_for('update_status', task_id=task.id) }}" class="status-form">
+                                        <select name="status" onchange="this.form.submit()">
+                                            {% for s in statuses %}
+                                            <option value="{{ s }}" {% if task.status == s %}selected{% endif %}>{{ s }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                    <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" class="delete-form">
+                                        <button type="submit" class="delete-btn" title="Delete task">×</button>
+                                    </form>
+                                </div>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </section>
+                <script src="{{ url_for('static', filename='subtasks-ajax.js') }}"></script>
+                {% else %}
+                <p class="empty">No tasks yet. Add one in the left column!</p>
+                {% endif %}
+            </div>
+        </main>
+
+        <aside class="column-right widgets-column">
+            <div class="column-right-inner">
+                <div class="widget" id="widget-pomodoro">
+                    <aside id="pomodoro-box" class="pomodoro-box pomodoro-box--in-layout">
+                        <div class="pomodoro-box-header" id="pomodoro-header">
+                            <span class="pomodoro-box-title">Pomodoro</span>
+                            <button type="button" class="pomodoro-collapse" id="pomodoro-collapse" title="Collapse">−</button>
+                            <span class="pomodoro-timer-tab" id="pomodoro-tomato" title="Open timer" aria-hidden="true">Timer</span>
+                        </div>
+                        <div class="pomodoro-box-body">
+                            <div class="pomodoro-settings">
+                                <label class="pomodoro-setting">
+                                    <span class="pomodoro-label">Focus</span>
+                                    <input type="number" id="pomodoro-focus" min="1" max="60" value="25">
+                                </label>
+                                <label class="pomodoro-setting">
+                                    <span class="pomodoro-label">Break</span>
+                                    <input type="number" id="pomodoro-break" min="1" max="30" value="5">
+                                </label>
+                            </div>
+                            <div class="pomodoro-display">
+                                <span class="pomodoro-phase" id="pomodoro-phase">Focus</span>
+                                <span class="pomodoro-time" id="pomodoro-time">25:00</span>
+                            </div>
+                            <div class="pomodoro-controls">
+                                <button type="button" class="pomodoro-btn pomodoro-start" id="pomodoro-start">Start</button>
+                                <button type="button" class="pomodoro-btn pomodoro-reset" id="pomodoro-reset">Reset</button>
+                            </div>
+                            <div class="pomodoro-sessions-row">
+                                <span class="pomodoro-sessions" id="pomodoro-sessions">Sessions: 0</span>
+                                <button type="button" id="pomodoro-reset-sessions" title="Reset session count to 0">Reset</button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+                <div class="widget widget-quote" id="widget-quote" aria-label="Daily motivational quote">
+                    <div class="quote-widget-header">Quote of the day</div>
+                    <div class="quote-widget-body">
+                        <blockquote class="quote-text" id="quote-text"></blockquote>
+                        <cite class="quote-author" id="quote-author"></cite>
+                    </div>
+                </div>
+                <div class="widget widget-pet" id="widget-pet" aria-label="Companion pet">
+                    <div class="pet-widget-header">Companion</div>
+                    <div class="pet-widget-body">
+                        <div class="pet-container" id="pet-container" role="button" tabindex="0" title="Click me!">
+                            <span class="pet-message" id="pet-message" aria-live="polite"></span>
+                            <div class="pet-character" id="pet-character">
+                                <span class="pet-face" aria-hidden="true">🐱</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        </div>
+    </div>
+
+    <div id="task-panel-overlay" class="panel-overlay" aria-hidden="true"></div>
+    <aside id="task-panel" class="task-panel" aria-hidden="true">
+        <div class="panel-header">
+            <button type="button" class="panel-close" id="panel-close" title="Close">×</button>
+        </div>
+        <div class="panel-body">
+            <form id="panel-edit-form" method="post" action="">
+                <label class="panel-label" for="panel-task-title">Title</label>
+                <input type="text" name="title" id="panel-task-title" class="panel-title-input" required>
+                <label class="panel-label" for="panel-description">Description</label>
+                <textarea name="description" id="panel-description" class="panel-description-input" rows="4" placeholder="Add a description…"></textarea>
+                <label class="panel-label" for="panel-code-link">Code link</label>
+                <div class="panel-code-link-row">
+                    <input type="text" name="code_link" id="panel-code-link" class="panel-code-link-input" placeholder="File path, module, or GitHub/GitLab URL…">
+                    <button type="button" id="panel-open-code-link" class="panel-open-link-btn" title="Open link in new tab or copy path">Open</button>
+                </div>
+                <button type="submit" class="panel-save">Save</button>
+            </form>
+            <p class="panel-label">Due date</p>
+            <form id="panel-due-form" method="post" action="">
+                <input type="date" name="due_date" id="panel-due-date" class="panel-due-input">
+                <button type="submit" class="panel-save">Save</button>
+            </form>
+            <div class="panel-meta">
+                <span class="badge badge-type" id="panel-type"></span>
+                <span class="panel-status" id="panel-status"></span>
+            </div>
+        </div>
+    </aside>
+
+    <script src="{{ url_for('static', filename='theme-toggle.js') }}"></script>
+    <script src="{{ url_for('static', filename='kanban-drag.js') }}"></script>
+    <script src="{{ url_for('static', filename='pomodoro.js') }}"></script>
+    <script src="{{ url_for('static', filename='quote-widget.js') }}"></script>
+    <script src="{{ url_for('static', filename='pet-widget.js') }}"></script>
+</body>
+</html>
