@@ -10,14 +10,16 @@
   if (!board) return;
 
   var columns = board.querySelectorAll(".column");
-  var cards = board.querySelectorAll(".card");
+  var mainInner = document.querySelector(".column-main-inner");
+  var cards = mainInner ? mainInner.querySelectorAll(".card") : board.querySelectorAll(".card");
 
-  // ---- Search: filter cards by title or type in real time ----
+  // ---- Search: filter cards by title or type in real time (includes blocked section) ----
   var searchInput = document.getElementById("board-search");
   if (searchInput) {
     function filterCards() {
       var q = (searchInput.value || "").trim().toLowerCase();
-      cards.forEach(function (card) {
+      var allCards = mainInner ? mainInner.querySelectorAll(".card") : board.querySelectorAll(".card");
+      allCards.forEach(function (card) {
         var titleEl = card.querySelector(".task-title");
         var typeEl = card.querySelector(".badge-type");
         var title = (titleEl && titleEl.textContent) ? titleEl.textContent.trim().toLowerCase() : "";
@@ -62,6 +64,12 @@
         if (titleEl) titleEl.value = task.title || "";
         if (descEl) descEl.value = task.description || "";
         if (panelCodeLinkInput) panelCodeLinkInput.value = task.code_link || "";
+        var panelCodeSnippet = document.getElementById("panel-code-snippet");
+        if (panelCodeSnippet) panelCodeSnippet.value = task.code_snippet || "";
+        var panelBlocked = document.getElementById("panel-blocked");
+        if (panelBlocked) panelBlocked.checked = !!task.blocked;
+        var panelBlockingReason = document.getElementById("panel-blocking-reason");
+        if (panelBlockingReason) panelBlockingReason.value = task.blocking_reason || "";
         var panelTypeEl = document.getElementById("panel-type");
         if (panelTypeEl) {
           panelTypeEl.textContent = task.task_type;

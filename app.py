@@ -65,11 +65,14 @@ def load_tasks():
             "description": t.get("description", ""),
             "context": t.get("context", ""),
             "code_link": (t.get("code_link") or t.get("link") or "").strip(),
+            "code_snippet": (t.get("code_snippet") or "").strip(),
             "task_type": t.get("task_type", "coding") if t.get("task_type") in TASK_TYPES else "coding",
             "status": status,
             "subtasks": subtasks,
             "due_date": due or None,
             "order": order,
+            "blocked": bool(t.get("blocked", False)),
+            "blocking_reason": (t.get("blocking_reason") or "").strip(),
         }
         tasks.append(task)
     return tasks
@@ -110,6 +113,9 @@ def index():
         status = request.form.get("status", "todo")
         due_date = request.form.get("due_date", "").strip() or None
         code_link = request.form.get("code_link", "").strip()
+        code_snippet = request.form.get("code_snippet", "").strip()
+        blocked = request.form.get("blocked") == "1"
+        blocking_reason = request.form.get("blocking_reason", "").strip()
         if not _valid_code_link(code_link):
             code_link = ""
         if task_type not in TASK_TYPES:
@@ -129,6 +135,9 @@ def index():
                 "due_date": due_date,
                 "order": max_order + 1,
                 "code_link": code_link,
+                "code_snippet": code_snippet,
+                "blocked": blocked,
+                "blocking_reason": blocking_reason,
             })
             save_tasks(tasks)
         return redirect(url_for("index"))
@@ -144,6 +153,7 @@ def index():
         [t for t in tasks if t.get("due_date")],
         key=lambda t: t["due_date"],
     )
+    blocked_tasks = [t for t in tasks if t.get("blocked")]
     return render_template(
         "index.html",
         tasks=tasks,
@@ -152,6 +162,7 @@ def index():
         today_iso=today_iso,
         due_soon_end_iso=due_soon_end,
         timeline_tasks=timeline_tasks,
+        blocked_tasks=blocked_tasks,
     )
 
 
@@ -167,10 +178,13 @@ def get_task(task_id):
 
 @app.route("/task/<int:task_id>/edit", methods=["POST"])
 def update_task(task_id):
-    """Update a task's title, description, and code link."""
+    """Update a task's title, description, code link, code snippet, blocked, and blocking reason."""
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     code_link = request.form.get("code_link", "").strip()
+    code_snippet = request.form.get("code_snippet", "").strip()
+    blocked = "1" in request.form.getlist("blocked")
+    blocking_reason = request.form.get("blocking_reason", "").strip()
     if not _valid_code_link(code_link):
         code_link = ""
     tasks = load_tasks()
@@ -180,6 +194,9 @@ def update_task(task_id):
                 t["title"] = title
             t["description"] = description
             t["code_link"] = code_link
+            t["code_snippet"] = code_snippet
+            t["blocked"] = blocked
+            t["blocking_reason"] = blocking_reason
             break
     save_tasks(tasks)
     return redirect(url_for("index"))

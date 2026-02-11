@@ -62,6 +62,17 @@
                             <span class="label-text">Code link</span>
                             <input type="text" name="code_link" class="add-form-code-link" placeholder="File path, module, or GitHub/GitLab URL…">
                         </label>
+                        <label class="add-form-code-snippet-wrap">
+                            <span class="label-text">Code snippet (optional)</span>
+                            <textarea name="code_snippet" class="add-form-code-snippet" placeholder="Paste a short code snippet…" rows="4"></textarea>
+                        </label>
+                        <label class="add-form-blocked-wrap">
+                            <span class="add-form-checkbox-row">
+                                <input type="checkbox" name="blocked" value="1" id="add-form-blocked" class="add-form-blocked-cb">
+                                <span class="label-text">Blocked</span>
+                            </span>
+                            <input type="text" name="blocking_reason" class="add-form-blocking-reason" placeholder="Blocking reason (optional)" aria-label="Blocking reason">
+                        </label>
                         <button type="submit">Add Task</button>
                     </form>
                 </section>
@@ -87,6 +98,55 @@
                 <div class="board-search-wrap">
                     <input type="search" id="board-search" class="board-search" placeholder="Search by title or type…" aria-label="Search tasks">
                 </div>
+                {% if blocked_tasks %}
+                <section class="blocked-section" aria-labelledby="blocked-heading">
+                    <h2 id="blocked-heading" class="blocked-section-title">Blocked</h2>
+                    <ul class="blocked-list" role="list">
+                        {% for task in blocked_tasks %}
+                        {% set due = task.due_date or '' %}
+                        {% set is_overdue = due and due < today_iso %}
+                        {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
+                        <li class="card card--blocked card--{{ task.task_type }}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                            <div class="card-body">
+                                <div class="card-body-header">
+                                    <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
+                                    <span class="task-title">{{ task.title }}</span>
+                                </div>
+                                <div class="card-body-detail">
+                                    {% if task.blocking_reason %}
+                                    <p class="task-blocking-reason"><span class="blocked-badge">Blocked</span> {{ task.blocking_reason|e }}</p>
+                                    {% else %}
+                                    <p class="task-blocking-reason"><span class="blocked-badge">Blocked</span></p>
+                                    {% endif %}
+                                    {% if task.description %}
+                                    <p class="task-description">{{ task.description }}</p>
+                                    {% endif %}
+                                    <div class="task-meta-row">
+                                        <span class="badge badge-type badge-type--{{ task.task_type }}">{{ task.task_type }}</span>
+                                        <span class="task-status-muted">{{ task.status }}</span>
+                                        {% if due %}
+                                        <span class="task-due-date" title="Due {{ due }}">📅 {{ due }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <form method="post" action="{{ url_for('update_status', task_id=task.id) }}" class="status-form">
+                                    <select name="status" onchange="this.form.submit()">
+                                        {% for s in statuses %}
+                                        <option value="{{ s }}" {% if task.status == s %}selected{% endif %}>{{ s }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                                <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" class="delete-form">
+                                    <button type="submit" class="delete-btn" title="Delete task">×</button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                {% endif %}
                 <section class="board">
                     {% for status in statuses %}
                     <div class="column" data-status="{{ status }}">
@@ -97,15 +157,26 @@
                             {% set due = task.due_date or '' %}
                             {% set is_overdue = due and due < today_iso %}
                             {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
-                            <li class="card card--{{ task.task_type }}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
-                                <div class="card-body">
+                            <li class="card card--{{ task.task_type }}{% if task.blocked %} card--blocked{% endif %}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                                    <div class="card-body">
                                     <div class="card-body-header">
                                         <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
+                                        {% if task.blocked %}
+                                        <span class="blocked-badge blocked-badge--inline" title="{{ task.blocking_reason or 'Blocked' }}">Blocked</span>
+                                        {% endif %}
                                         <span class="task-title">{{ task.title }}</span>
                                     </div>
                                     <div class="card-body-detail">
+                                        {% if task.blocked and task.blocking_reason %}
+                                        <p class="task-blocking-reason-inline"><span class="blocked-reason-label">Reason:</span> {{ task.blocking_reason|e }}</p>
+                                        {% endif %}
                                         {% if task.description %}
                                         <p class="task-description">{{ task.description }}</p>
+                                        {% endif %}
+                                        {% if task.code_snippet %}
+                                        <div class="task-code-snippet-wrap">
+                                            <pre class="task-code-block"><code>{{ task.code_snippet|e }}</code></pre>
+                                        </div>
                                         {% endif %}
                                         <div class="task-meta-row">
                                             <span class="badge badge-type badge-type--{{ task.task_type }}">{{ task.task_type }}</span>
@@ -244,6 +315,17 @@
                 <div class="panel-code-link-row">
                     <input type="text" name="code_link" id="panel-code-link" class="panel-code-link-input" placeholder="File path, module, or GitHub/GitLab URL…">
                     <button type="button" id="panel-open-code-link" class="panel-open-link-btn" title="Open link in new tab or copy path">Open</button>
+                </div>
+                <label class="panel-label" for="panel-code-snippet">Code snippet</label>
+                <textarea name="code_snippet" id="panel-code-snippet" class="panel-code-snippet-input" rows="6" placeholder="Optional code snippet…"></textarea>
+                <div class="panel-blocked-row">
+                    <input type="hidden" name="blocked" value="0">
+                    <label class="panel-checkbox-label">
+                        <input type="checkbox" name="blocked" value="1" id="panel-blocked" class="panel-blocked-cb">
+                        <span>Blocked</span>
+                    </label>
+                    <label class="panel-label" for="panel-blocking-reason">Blocking reason</label>
+                    <input type="text" name="blocking_reason" id="panel-blocking-reason" class="panel-blocking-reason-input" placeholder="Why is this task blocked?">
                 </div>
                 <button type="submit" class="panel-save">Save</button>
             </form>

@@ -3,11 +3,15 @@
     "id": 1,
     "title": "Learn general system design",
     "description": "",
+    "context": "",
+    "code_link": "",
+    "code_snippet": "",
     "task_type": "learning",
     "status": "todo",
     "subtasks": [],
     "due_date": "2026-02-11",
     "order": 1,
-    "code_link": ""
+    "blocked": false,
+    "blocking_reason": "no route"
   }
 ]
