@@ -62,7 +62,11 @@
         if (titleEl) titleEl.value = task.title || "";
         if (descEl) descEl.value = task.description || "";
         if (panelCodeLinkInput) panelCodeLinkInput.value = task.code_link || "";
-        document.getElementById("panel-type").textContent = task.task_type;
+        var panelTypeEl = document.getElementById("panel-type");
+        if (panelTypeEl) {
+          panelTypeEl.textContent = task.task_type;
+          panelTypeEl.className = "badge badge-type badge-type--" + (task.task_type || "coding");
+        }
         document.getElementById("panel-status").textContent = task.status;
         if (panelDueInput) panelDueInput.value = task.due_date || "";
         if (editForm) editForm.action = "/task/" + taskId + "/edit";

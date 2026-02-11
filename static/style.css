@@ -9,7 +9,17 @@
     --color-bg-card-hover: #f5f4f1;
     --color-border: rgba(55, 53, 47, 0.09);
     --color-border-strong: rgba(55, 53, 47, 0.12);
+    --color-border-column: rgba(55, 53, 47, 0.2);
     --color-border-focus: rgba(55, 53, 47, 0.35);
+    --color-scrollbar-track: rgba(55, 53, 47, 0.06);
+    --color-scrollbar-thumb: rgba(55, 53, 47, 0.2);
+    /* Task type colors */
+    --color-type-coding: #2563eb;
+    --color-type-coding-soft: rgba(37, 99, 235, 0.18);
+    --color-type-debugging: #ea580c;
+    --color-type-debugging-soft: rgba(234, 88, 12, 0.18);
+    --color-type-learning: #059669;
+    --color-type-learning-soft: rgba(5, 150, 105, 0.18);
     --color-primary: #37352f;
     --color-primary-hover: #2f2d29;
     --color-overdue: rgba(235, 87, 87, 0.7);
@@ -41,7 +51,17 @@
     --color-bg-card-hover: #2d2d2d;
     --color-border: rgba(255, 255, 255, 0.08);
     --color-border-strong: rgba(255, 255, 255, 0.12);
+    --color-border-column: rgba(255, 255, 255, 0.22);
     --color-border-focus: rgba(255, 255, 255, 0.25);
+    --color-scrollbar-track: rgba(255, 255, 255, 0.06);
+    --color-scrollbar-thumb: rgba(255, 255, 255, 0.35);
+    /* Task type colors – dark mode */
+    --color-type-coding: #60a5fa;
+    --color-type-coding-soft: rgba(96, 165, 250, 0.2);
+    --color-type-debugging: #fb923c;
+    --color-type-debugging-soft: rgba(251, 146, 60, 0.2);
+    --color-type-learning: #34d399;
+    --color-type-learning-soft: rgba(52, 211, 153, 0.2);
     --color-primary: #4a4a4a;
     --color-primary-hover: #5a5a5a;
     --color-overdue: rgba(235, 87, 87, 0.6);
@@ -65,6 +85,44 @@ body {
     font-size: var(--font-body);
     overflow: hidden;
     transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Scrollbar – uses CSS variables so dark theme gets darker thumb */
+.column-left,
+.column-main,
+.column-right,
+.task-panel {
+    scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+    scrollbar-width: thin;
+}
+.column-left::-webkit-scrollbar,
+.column-main::-webkit-scrollbar,
+.column-right::-webkit-scrollbar,
+.task-panel::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+.column-left::-webkit-scrollbar-track,
+.column-main::-webkit-scrollbar-track,
+.column-right::-webkit-scrollbar-track,
+.task-panel::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+}
+.column-left::-webkit-scrollbar-thumb,
+.column-main::-webkit-scrollbar-thumb,
+.column-right::-webkit-scrollbar-thumb,
+.task-panel::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+}
+.column-left::-webkit-scrollbar-thumb:hover,
+.column-main::-webkit-scrollbar-thumb:hover,
+.column-right::-webkit-scrollbar-thumb:hover,
+.task-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-strong);
+    background-clip: padding-box;
 }
 
 .app-layout,
@@ -118,7 +176,7 @@ body {
     width: 280px;
     flex-shrink: 0;
     background: var(--color-bg);
-    border-right: 1px solid var(--color-border);
+    border-right: 2px solid var(--color-border-column);
     overflow-y: auto;
 }
 
@@ -181,6 +239,74 @@ body {
 .label-text { font-size: var(--font-label); font-weight: 600; color: var(--color-text-muted); }
 .add-form-date { min-width: 140px; }
 
+/* Type picker (custom dropdown with color swatch) */
+.type-picker { position: relative; display: flex; flex-direction: column; gap: var(--space-xs); }
+.type-picker .label-text { font-size: var(--font-label); font-weight: 600; color: var(--color-text-muted); }
+.type-picker-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--input-padding-y) var(--input-padding-x);
+    font-size: var(--font-body);
+    font-family: inherit;
+    text-align: left;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg);
+    color: var(--color-text);
+    cursor: pointer;
+}
+.type-picker-btn:hover { border-color: var(--color-border-focus); }
+.type-picker-btn::after { content: "▾"; margin-left: auto; font-size: 0.75em; color: var(--color-text-muted); }
+.type-picker.open .type-picker-btn { border-color: var(--color-border-focus); }
+.type-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.type-picker-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    padding: var(--space-xs);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--color-shadow-strong);
+    z-index: 10;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.type-picker.open .type-picker-dropdown { display: block; }
+.type-picker-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-body);
+    color: var(--color-text);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    border: none;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    font-family: inherit;
+}
+.type-picker-option:hover { background: var(--color-bg-card-hover); }
+.type-picker-option[data-value="coding"] .type-swatch { background: var(--color-type-coding); }
+.type-picker-option[data-value="debugging"] .type-swatch { background: var(--color-type-debugging); }
+.type-picker-option[data-value="learning"] .type-swatch { background: var(--color-type-learning); }
+/* Button swatch reflects selected type */
+.type-picker-btn .type-swatch.type-swatch--coding { background: var(--color-type-coding); }
+.type-picker-btn .type-swatch.type-swatch--debugging { background: var(--color-type-debugging); }
+.type-picker-btn .type-swatch.type-swatch--learning { background: var(--color-type-learning); }
+
 .add-form-code-link-wrap { display: flex; flex-direction: column; gap: var(--space-xs); }
 .add-form-code-link-wrap .label-text { font-size: var(--font-label); font-weight: 600; color: var(--color-text-muted); }
 
@@ -217,18 +343,13 @@ body {
     flex: 1;
     min-width: 0;
     min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .column-main-inner {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    display: block;
     padding: var(--space-lg);
-    overflow: hidden;
+    min-height: min-content;
 }
 
 .column-main-inner .timeline-wrap,
@@ -237,9 +358,10 @@ body {
 }
 
 .column-main-inner .board {
-    flex: 1;
+    display: flex;
+    gap: var(--space-lg);
+    align-items: flex-start;
     min-height: 0;
-    overflow: hidden;
 }
 
 .column-main-inner .empty {
@@ -300,7 +422,6 @@ body {
     padding: var(--space-md);
     display: flex;
     flex-direction: column;
-    min-height: 0;
     box-shadow: 0 4px 12px var(--color-shadow);
 }
 
@@ -345,9 +466,6 @@ body {
     list-style: none;
     margin: 0;
     padding: 0;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
@@ -364,6 +482,11 @@ body {
 .card-search-hidden { display: none !important; }
 .card.drag-over { opacity: 0.6; }
 .column.drag-over { background: var(--color-bg-card-hover); }
+
+/* Task type card accent (left border) */
+.card.card--coding { border-left: 4px solid var(--color-type-coding); }
+.card.card--debugging { border-left: 4px solid var(--color-type-debugging); }
+.card.card--learning { border-left: 4px solid var(--color-type-learning); }
 
 .card-body-header {
     display: flex;
@@ -403,6 +526,9 @@ body {
 }
 .badge { padding: 2px 6px; border-radius: var(--radius-sm); font-weight: 500; }
 .badge-type { background: var(--color-border); color: var(--color-text-muted); }
+.badge-type--coding { background: var(--color-type-coding-soft); color: var(--color-type-coding); }
+.badge-type--debugging { background: var(--color-type-debugging-soft); color: var(--color-type-debugging); }
+.badge-type--learning { background: var(--color-type-learning-soft); color: var(--color-type-learning); }
 .task-due-date { color: var(--color-text-muted); }
 .task-overdue .task-due-date { color: var(--color-overdue); }
 .task-due-soon .task-due-date { color: var(--color-due-soon); }
@@ -493,7 +619,7 @@ body {
     width: 300px;
     flex-shrink: 0;
     background: var(--color-bg);
-    border-left: 1px solid var(--color-border);
+    border-left: 2px solid var(--color-border-column);
     overflow-y: auto;
 }
 

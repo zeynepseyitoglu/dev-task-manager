@@ -29,14 +29,22 @@
                         <input type="text" name="title" placeholder="Task title..." required autofocus>
                         <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
                         <div class="form-row">
-                            <label>
+                            <div class="type-picker" id="type-picker">
                                 <span class="label-text">Type</span>
-                                <select name="task_type">
+                                <input type="hidden" name="task_type" id="task_type_input" value="coding">
+                                <button type="button" class="type-picker-btn" id="type-picker-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Select task type">
+                                    <span class="type-swatch type-swatch--coding" id="type-picker-swatch"></span>
+                                    <span id="type-picker-label">coding</span>
+                                </button>
+                                <div class="type-picker-dropdown" role="listbox" id="type-picker-dropdown" aria-hidden="true">
                                     {% for tt in task_types %}
-                                    <option value="{{ tt }}">{{ tt }}</option>
+                                    <button type="button" class="type-picker-option" role="option" data-value="{{ tt }}" data-label="{{ tt }}">
+                                        <span class="type-swatch type-swatch--{{ tt }}"></span>
+                                        <span>{{ tt }}</span>
+                                    </button>
                                     {% endfor %}
-                                </select>
-                            </label>
+                                </div>
+                            </div>
                             <label>
                                 <span class="label-text">Status</span>
                                 <select name="status">
@@ -89,7 +97,7 @@
                             {% set due = task.due_date or '' %}
                             {% set is_overdue = due and due < today_iso %}
                             {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
-                            <li class="card{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                            <li class="card card--{{ task.task_type }}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
                                 <div class="card-body">
                                     <div class="card-body-header">
                                         <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
@@ -100,7 +108,7 @@
                                         <p class="task-description">{{ task.description }}</p>
                                         {% endif %}
                                         <div class="task-meta-row">
-                                            <span class="badge badge-type">{{ task.task_type }}</span>
+                                            <span class="badge badge-type badge-type--{{ task.task_type }}">{{ task.task_type }}</span>
                                             {% if due %}
                                             <span class="task-due-date" title="Due {{ due }}">📅 {{ due }}</span>
                                             {% endif %}
@@ -252,6 +260,45 @@
     </aside>
 
     <script src="{{ url_for('static', filename='theme-toggle.js') }}"></script>
+    <script>
+      (function () {
+        var picker = document.getElementById("type-picker");
+        var btn = document.getElementById("type-picker-btn");
+        var dropdown = document.getElementById("type-picker-dropdown");
+        var input = document.getElementById("task_type_input");
+        var labelEl = document.getElementById("type-picker-label");
+        var swatchEl = document.getElementById("type-picker-swatch");
+        if (!picker || !btn || !dropdown || !input) return;
+        function close() {
+          picker.classList.remove("open");
+          btn.setAttribute("aria-expanded", "false");
+          dropdown.setAttribute("aria-hidden", "true");
+        }
+        function select(value, label) {
+          input.value = value;
+          if (labelEl) labelEl.textContent = label;
+          if (swatchEl) {
+            swatchEl.classList.remove("type-swatch--coding", "type-swatch--debugging", "type-swatch--learning");
+            swatchEl.classList.add("type-swatch--" + value);
+          }
+          close();
+        }
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var isOpen = picker.classList.toggle("open");
+          btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+          dropdown.setAttribute("aria-hidden", isOpen ? "false" : "true");
+        });
+        dropdown.querySelectorAll(".type-picker-option").forEach(function (opt) {
+          opt.addEventListener("click", function () {
+            select(opt.getAttribute("data-value"), opt.getAttribute("data-label") || opt.textContent.trim());
+          });
+        });
+        document.addEventListener("click", function (e) {
+          if (picker && !picker.contains(e.target)) close();
+        });
+      })();
+    </script>
     <script src="{{ url_for('static', filename='kanban-drag.js') }}"></script>
     <script src="{{ url_for('static', filename='pomodoro.js') }}"></script>
     <script src="{{ url_for('static', filename='quote-widget.js') }}"></script>
