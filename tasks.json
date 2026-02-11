@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": 1,
+    "title": "Learn general system design",
+    "description": "",
+    "task_type": "learning",
+    "status": "todo",
+    "subtasks": [],
+    "due_date": "2026-02-11",
+    "order": 1,
+    "code_link": ""
+  }
+]
