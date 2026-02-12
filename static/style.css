@@ -1028,6 +1028,7 @@ body.sprint-mode-active .timeline-item[data-in-sprint="false"] {
     cursor: pointer;
 }
 .panel-save:hover { background: var(--color-primary-hover); }
+.panel-save--final { margin-top: var(--space-lg); margin-bottom: 0; }
 .panel-meta { display: flex; gap: var(--space-sm); align-items: center; margin-top: var(--space-md); }
 .panel-status { font-size: var(--font-sm); color: var(--color-text-muted); text-transform: capitalize; }
 

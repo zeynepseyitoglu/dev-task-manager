@@ -167,7 +167,7 @@
                         <h2 class="column-header">{{ status }}</h2>
                         <ul class="column-cards">
                             {% for task in tasks %}
-                            {% if task.status == status %}
+                            {% if task.status == status and not task.blocked %}
                             {% set due = task.due_date or '' %}
                             {% set is_overdue = due and due < today_iso %}
                             {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
@@ -352,12 +352,9 @@
                         <span>In sprint</span>
                     </label>
                 </div>
-                <button type="submit" class="panel-save">Save</button>
-            </form>
-            <p class="panel-label">Due date</p>
-            <form id="panel-due-form" method="post" action="">
+                <label class="panel-label" for="panel-due-date">Due date</label>
                 <input type="date" name="due_date" id="panel-due-date" class="panel-due-input">
-                <button type="submit" class="panel-save">Save</button>
+                <button type="submit" class="panel-save panel-save--final">Save</button>
             </form>
             <div class="panel-meta">
                 <span class="badge badge-type" id="panel-type"></span>

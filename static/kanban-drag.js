@@ -46,7 +46,6 @@
   var panel = document.getElementById("task-panel");
   var panelClose = document.getElementById("panel-close");
   var editForm = document.getElementById("panel-edit-form");
-  var dueForm = document.getElementById("panel-due-form");
   var panelDueInput = document.getElementById("panel-due-date");
   var panelCodeLinkInput = document.getElementById("panel-code-link");
   var panelOpenLinkBtn = document.getElementById("panel-open-code-link");
@@ -80,7 +79,6 @@
         document.getElementById("panel-status").textContent = task.status;
         if (panelDueInput) panelDueInput.value = task.due_date || "";
         if (editForm) editForm.action = "/task/" + taskId + "/edit";
-        if (dueForm) dueForm.action = "/task/" + taskId + "/due_date";
         overlay.setAttribute("aria-hidden", "false");
         panel.setAttribute("aria-hidden", "false");
       });

@@ -180,7 +180,7 @@ def get_task(task_id):
 
 @app.route("/task/<int:task_id>/edit", methods=["POST"])
 def update_task(task_id):
-    """Update a task's title, description, code link, code snippet, blocked, and blocking reason."""
+    """Update a task's title, description, code link, code snippet, blocked, blocking reason, due date."""
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     code_link = request.form.get("code_link", "").strip()
@@ -188,6 +188,7 @@ def update_task(task_id):
     blocked = "1" in request.form.getlist("blocked")
     blocking_reason = request.form.get("blocking_reason", "").strip()
     in_sprint = "1" in request.form.getlist("in_sprint")
+    due_date = request.form.get("due_date", "").strip() or None
     if not _valid_code_link(code_link):
         code_link = ""
     tasks = load_tasks()
@@ -201,6 +202,7 @@ def update_task(task_id):
             t["blocked"] = blocked
             t["blocking_reason"] = blocking_reason
             t["in_sprint"] = in_sprint
+            t["due_date"] = due_date
             break
     save_tasks(tasks)
     return redirect(url_for("index"))
