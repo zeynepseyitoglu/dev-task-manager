@@ -73,6 +73,7 @@ def load_tasks():
             "order": order,
             "blocked": bool(t.get("blocked", False)),
             "blocking_reason": (t.get("blocking_reason") or "").strip(),
+            "in_sprint": bool(t.get("in_sprint", False)),
         }
         tasks.append(task)
     return tasks
@@ -138,6 +139,7 @@ def index():
                 "code_snippet": code_snippet,
                 "blocked": blocked,
                 "blocking_reason": blocking_reason,
+                "in_sprint": False,
             })
             save_tasks(tasks)
         return redirect(url_for("index"))
@@ -185,6 +187,7 @@ def update_task(task_id):
     code_snippet = request.form.get("code_snippet", "").strip()
     blocked = "1" in request.form.getlist("blocked")
     blocking_reason = request.form.get("blocking_reason", "").strip()
+    in_sprint = "1" in request.form.getlist("in_sprint")
     if not _valid_code_link(code_link):
         code_link = ""
     tasks = load_tasks()
@@ -197,8 +200,24 @@ def update_task(task_id):
             t["code_snippet"] = code_snippet
             t["blocked"] = blocked
             t["blocking_reason"] = blocking_reason
+            t["in_sprint"] = in_sprint
             break
     save_tasks(tasks)
+    return redirect(url_for("index"))
+
+
+@app.route("/task/<int:task_id>/sprint", methods=["POST"])
+def update_task_sprint(task_id):
+    """Update only the task's in_sprint flag (for sprint selection mode)."""
+    in_sprint = request.form.get("in_sprint") == "1" or "1" in request.form.getlist("in_sprint")
+    tasks = load_tasks()
+    for t in tasks:
+        if t["id"] == task_id:
+            t["in_sprint"] = in_sprint
+            break
+    save_tasks(tasks)
+    if _ajax_ok():
+        return jsonify({"ok": True, "in_sprint": in_sprint})
     return redirect(url_for("index"))
 
 

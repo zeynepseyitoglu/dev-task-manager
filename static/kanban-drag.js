@@ -70,6 +70,8 @@
         if (panelBlocked) panelBlocked.checked = !!task.blocked;
         var panelBlockingReason = document.getElementById("panel-blocking-reason");
         if (panelBlockingReason) panelBlockingReason.value = task.blocking_reason || "";
+        var panelInSprint = document.getElementById("panel-in-sprint");
+        if (panelInSprint) panelInSprint.checked = !!task.in_sprint;
         var panelTypeEl = document.getElementById("panel-type");
         if (panelTypeEl) {
           panelTypeEl.textContent = task.task_type;

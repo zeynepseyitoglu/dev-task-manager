@@ -12,6 +12,23 @@
     "due_date": "2026-02-11",
     "order": 1,
     "blocked": false,
-    "blocking_reason": "no route"
+    "blocking_reason": "no route",
+    "in_sprint": true
+  },
+  {
+    "id": 2,
+    "title": "NON SPRINT TRY",
+    "description": "",
+    "context": "",
+    "code_link": "",
+    "code_snippet": "",
+    "task_type": "coding",
+    "status": "in progress",
+    "subtasks": [],
+    "due_date": "2026-02-12",
+    "order": 2,
+    "blocked": false,
+    "blocking_reason": "",
+    "in_sprint": true
   }
 ]

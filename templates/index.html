@@ -6,17 +6,27 @@
     <title>Developer Task Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
-      (function(){try{var t=localStorage.getItem("taskManagerTheme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");else if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();
+      (function(){var t=localStorage.getItem("taskManagerTheme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");else if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)document.documentElement.setAttribute("data-theme","dark");var s=localStorage.getItem("taskManagerSprintMode");if(s==="1")document.body.classList.add("sprint-mode-active");})();
     </script>
 </head>
 <body>
     <div class="app-layout">
         <header class="app-header" role="banner">
             <span class="app-header-title">Task Manager</span>
-            <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
-                <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">☀</span>
-                <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">☽</span>
-            </button>
+            <div class="header-actions">
+                <button type="button" class="sprint-select-toggle" id="sprint-select-toggle" title="Select which tasks are in the sprint" aria-pressed="false" aria-label="Select sprint tasks">
+                    <span class="sprint-select-icon" aria-hidden="true">✓</span>
+                    <span class="sprint-select-label">Select sprint</span>
+                </button>
+                <button type="button" class="sprint-mode-toggle" id="sprint-mode-toggle" title="Show only sprint tasks" aria-pressed="false" aria-label="Sprint Mode">
+                    <span class="sprint-mode-icon" aria-hidden="true">🏃</span>
+                    <span class="sprint-mode-label">Sprint</span>
+                </button>
+                <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                    <span class="theme-toggle-icon theme-icon-light" aria-hidden="true">☀</span>
+                    <span class="theme-toggle-icon theme-icon-dark" aria-hidden="true">☽</span>
+                </button>
+            </div>
         </header>
         <div class="app-columns">
         <aside class="column-left">
@@ -87,7 +97,7 @@
                     <h2 class="timeline-title">By due date</h2>
                     <div class="timeline" role="list">
                         {% for t in timeline_tasks %}
-                        <a href="#" class="timeline-item" data-task-id="{{ t.id }}" title="{{ t.title }} – {{ t.due_date }}">
+                        <a href="#" class="timeline-item" data-task-id="{{ t.id }}" data-in-sprint="{{ 'true' if t.in_sprint else 'false' }}" title="{{ t.title }} – {{ t.due_date }}">
                             <span class="timeline-item-title">{{ t.title }}</span>
                             <span class="timeline-item-date">{{ t.due_date }}</span>
                         </a>
@@ -106,9 +116,13 @@
                         {% set due = task.due_date or '' %}
                         {% set is_overdue = due and due < today_iso %}
                         {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
-                        <li class="card card--blocked card--{{ task.task_type }}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                        <li class="card card--blocked card--{{ task.task_type }}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}" data-in-sprint="{{ 'true' if task.in_sprint else 'false' }}">
                             <div class="card-body">
                                 <div class="card-body-header">
+                                    <label class="card-sprint-checkbox sprint-selection-only" aria-hidden="true" title="Include in sprint">
+                                        <input type="checkbox" class="card-in-sprint-cb" data-task-id="{{ task.id }}" {% if task.in_sprint %}checked{% endif %}>
+                                        <span class="sprint-cb-label">Sprint</span>
+                                    </label>
                                     <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
                                     <span class="task-title">{{ task.title }}</span>
                                 </div>
@@ -157,9 +171,13 @@
                             {% set due = task.due_date or '' %}
                             {% set is_overdue = due and due < today_iso %}
                             {% set is_due_soon = due and not is_overdue and due <= due_soon_end_iso %}
-                            <li class="card card--{{ task.task_type }}{% if task.blocked %} card--blocked{% endif %}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}">
+                            <li class="card card--{{ task.task_type }}{% if task.blocked %} card--blocked{% endif %}{% if is_overdue %} task-overdue{% elif is_due_soon %} task-due-soon{% endif %}" draggable="true" data-task-id="{{ task.id }}" data-in-sprint="{{ 'true' if task.in_sprint else 'false' }}">
                                     <div class="card-body">
                                     <div class="card-body-header">
+                                        <label class="card-sprint-checkbox sprint-selection-only" aria-hidden="true" title="Include in sprint">
+                                            <input type="checkbox" class="card-in-sprint-cb" data-task-id="{{ task.id }}" {% if task.in_sprint %}checked{% endif %}>
+                                            <span class="sprint-cb-label">Sprint</span>
+                                        </label>
                                         <button type="button" class="card-collapse-toggle" title="Expand or collapse" aria-expanded="true" aria-label="Collapse card">▾</button>
                                         {% if task.blocked %}
                                         <span class="blocked-badge blocked-badge--inline" title="{{ task.blocking_reason or 'Blocked' }}">Blocked</span>
@@ -327,6 +345,13 @@
                     <label class="panel-label" for="panel-blocking-reason">Blocking reason</label>
                     <input type="text" name="blocking_reason" id="panel-blocking-reason" class="panel-blocking-reason-input" placeholder="Why is this task blocked?">
                 </div>
+                <div class="panel-sprint-row">
+                    <input type="hidden" name="in_sprint" value="0">
+                    <label class="panel-checkbox-label">
+                        <input type="checkbox" name="in_sprint" value="1" id="panel-in-sprint" class="panel-in-sprint-cb">
+                        <span>In sprint</span>
+                    </label>
+                </div>
                 <button type="submit" class="panel-save">Save</button>
             </form>
             <p class="panel-label">Due date</p>
@@ -342,6 +367,52 @@
     </aside>
 
     <script src="{{ url_for('static', filename='theme-toggle.js') }}"></script>
+    <script>
+      (function () {
+        var sprintModeBtn = document.getElementById("sprint-mode-toggle");
+        if (sprintModeBtn) {
+          function updateSprintModeState() {
+            var active = document.body.classList.contains("sprint-mode-active");
+            sprintModeBtn.setAttribute("aria-pressed", active ? "true" : "false");
+          }
+          updateSprintModeState();
+          sprintModeBtn.addEventListener("click", function () {
+            document.body.classList.toggle("sprint-mode-active");
+            try { localStorage.setItem("taskManagerSprintMode", document.body.classList.contains("sprint-mode-active") ? "1" : "0"); } catch (e) {}
+            updateSprintModeState();
+          });
+        }
+        var selectSprintBtn = document.getElementById("sprint-select-toggle");
+        if (selectSprintBtn) {
+          function updateSelectState() {
+            var active = document.body.classList.contains("sprint-selection-mode");
+            selectSprintBtn.setAttribute("aria-pressed", active ? "true" : "false");
+            document.querySelectorAll(".sprint-selection-only").forEach(function (el) { el.setAttribute("aria-hidden", active ? "false" : "true"); });
+          }
+          updateSelectState();
+          selectSprintBtn.addEventListener("click", function () {
+            document.body.classList.toggle("sprint-selection-mode");
+            updateSelectState();
+          });
+        }
+        document.addEventListener("change", function (e) {
+          if (!e.target || !e.target.classList.contains("card-in-sprint-cb")) return;
+          var cb = e.target;
+          var taskId = cb.getAttribute("data-task-id");
+          if (!taskId) return;
+          var inSprint = cb.checked ? "1" : "0";
+          var card = cb.closest(".card");
+          var formData = new FormData();
+          formData.append("in_sprint", inSprint);
+          fetch("/task/" + taskId + "/sprint", { method: "POST", body: formData, headers: { "X-Requested-With": "XMLHttpRequest" } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data && data.ok && card) card.setAttribute("data-in-sprint", data.in_sprint ? "true" : "false");
+            })
+            .catch(function () { cb.checked = !cb.checked; });
+        });
+      })();
+    </script>
     <script>
       (function () {
         var picker = document.getElementById("type-picker");
