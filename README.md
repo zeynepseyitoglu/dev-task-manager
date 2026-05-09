@@ -68,10 +68,6 @@ No npm, no build step: run the Flask server and open the app in the browser.
 
 #### 1. Clone or download the project
 
-```bash
-cd path/to/cursor-tutorial
-```
-
 #### 2. Create a virtual environment (recommended)
 
 **Windows (Command Prompt):**
